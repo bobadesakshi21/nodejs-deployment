@@ -1,4 +1,6 @@
 const path = require('path')
+const fs = require('fs')
+const https = require('https')
 
 const express = require('express')
 const bodyParser = require('body-parser')
@@ -8,11 +10,16 @@ const MongoDBStore = require('connect-mongodb-session')(session)
 const csrf = require('csurf')
 const flash = require('connect-flash')
 const multer = require('multer')
+const helmet = require('helmet')
+const compression = require('compression')
+const morgan = require('morgan')
 
 const errorController = require('./controllers/error')
 const User = require('./models/user')
 
-const MONGODB_URI = 'mongodb+srv://Sakshi:sakshi123@cluster0.vpzlm.mongodb.net/shop?retryWrites=true&w=majority'
+const MONGODB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.vpzlm.mongodb.net/${process.env.MONGO_DEFAULT_DATABASE}?retryWrites=true&w=majority`
+
+console.log(process.env.NODE_ENV)
 
 const app = express()
 const store = MongoDBStore({
@@ -20,6 +27,9 @@ const store = MongoDBStore({
   collection: 'sessions'
 })
 const csrfProtection = csrf()
+
+const privateKey = fs.readFileSync('server.key')
+const certificate = fs.readFileSync('server.cert')
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -48,6 +58,14 @@ app.set('views', 'views')
 const adminRoutes = require('./routes/admin')
 const shopRoutes = require('./routes/shop')
 const authRoutes = require('./routes/auth')
+
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, 'access.log'),
+  { flags: 'a' })
+
+app.use(helmet())
+app.use(compression())
+app.use(morgan('combined', { stream: accessLogStream }))
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(multer({ storage: fileStorage, fileFilter: fileFilter }).single('image'))
@@ -109,7 +127,9 @@ app.use((error, req, res, next) => {
 
 mongoose.connect(MONGODB_URI)
   .then(result => {
-    app.listen(3000)
+    // https
+    //   .createServer({ key: privateKey, cert: certificate }, app)
+    app.listen(process.env.PORT || 3000)
   })
   .catch(err => {
     console.log('CONNECTION ERR', err)

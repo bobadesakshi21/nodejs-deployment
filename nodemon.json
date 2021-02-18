@@ -1,0 +1,8 @@
+{
+    "env": {
+        "MONGO_USER": "Sakshi",
+        "MONGO_PASSWORD": "sakshi123",
+        "MONGO_DEFAULT_DATABASE": "shop",
+        "NODE_ENV": "production"
+    }
+}
